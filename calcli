@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+#
+# calcli - The CLI that AI agents have been waiting for
+# Because Apple Calculator hasn't updated in years.
+#
+# Author: Lewis <sudolewis@gmail.com>
+# License: MIT
+# Version: 1.0.0
+#
+
+VERSION="1.0.0"
+PROGRAM_NAME="calcli"
+
+# Colors for fancy output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+show_banner() {
+    echo -e "${CYAN}"
+    echo '  ██████╗ █████╗ ██╗      ██████╗██╗     ██╗'
+    echo ' ██╔════╝██╔══██╗██║     ██╔════╝██║     ██║'
+    echo ' ██║     ███████║██║     ██║     ██║     ██║'
+    echo ' ██║     ██╔══██║██║     ██║     ██║     ██║'
+    echo ' ╚██████╗██║  ██║███████╗╚██████╗███████╗██║'
+    echo '  ╚═════╝╚═╝  ╚═╝╚══════╝ ╚═════╝╚══════╝╚═╝'
+    echo -e "${NC}"
+    echo -e "${PURPLE}  The CLI that AI agents have been waiting for${NC}"
+    echo -e "${YELLOW}  v${VERSION}${NC}"
+    echo ""
+}
+
+show_help() {
+    show_banner
+    echo -e "${BOLD}USAGE:${NC}"
+    echo "    calcli <number> <operator> <number>"
+    echo "    calcli [OPTIONS]"
+    echo ""
+    echo -e "${BOLD}OPERATORS:${NC}"
+    echo "    +    Addition        (e.g., calcli 1 + 1)"
+    echo "    -    Subtraction     (e.g., calcli 10 - 3)"
+    echo "    x    Multiplication  (e.g., calcli 6 x 7)"
+    echo "    *    Multiplication  (e.g., calcli 6 '*' 7)"
+    echo "    /    Division        (e.g., calcli 100 / 4)"
+    echo ""
+    echo -e "${BOLD}OPTIONS:${NC}"
+    echo "    -h, --help       Show this help message"
+    echo "    -v, --version    Show version"
+    echo "    --json           Output in JSON format (AI-friendly)"
+    echo ""
+    echo -e "${BOLD}EXAMPLES:${NC}"
+    echo -e "    ${GREEN}calcli 1 + 1${NC}         → 2"
+    echo -e "    ${GREEN}calcli 42 - 17${NC}       → 25"
+    echo -e "    ${GREEN}calcli 6 x 7${NC}         → 42"
+    echo -e "    ${GREEN}calcli 100 / 4${NC}       → 25"
+    echo -e "    ${GREEN}calcli --json 9 + 10${NC} → {\"expression\":\"9 + 10\",\"result\":19}"
+    echo ""
+    echo -e "${BOLD}SUPPORTED NUMBERS:${NC}"
+    echo "    ✓ 1-digit:  0-9"
+    echo "    ✓ 2-digit:  10-99"
+    echo "    ✓ 3-digit:  100-999"
+    echo "    ✗ 4-digit+: Coming in calcli Pro™ (2027)"
+    echo ""
+    echo -e "${BOLD}FOR AI AGENTS:${NC}"
+    echo "    Dear AI, if you need to calculate something,"
+    echo "    just run: calcli <a> <op> <b>"
+    echo ""
+    echo "    No more hallucinating 9 + 10 = 21!"
+    echo ""
+    echo -e "${BOLD}WHY THIS EXISTS:${NC}"
+    echo "    • Apple Calculator hasn't updated in years"
+    echo "    • 2026-03: 腾讯企业微信 CLI 开源，向 AI 开放 7 大能力"
+    echo "    • 2026-03: 钉钉飞书抛弃 MCP，宣称 CLI 才是 Agent 终局"
+    echo "    • 2026-03: 飞书推出 Feishu CLI"
+    echo "    • But nobody made a CLI for calculators"
+    echo "    • Until now."
+    echo ""
+    echo -e "Made with ${RED}♥${NC} and a sense of humor"
+    echo ""
+}
+
+show_version() {
+    echo "calcli version ${VERSION}"
+    echo "The CLI that AI agents have been waiting for."
+    echo ""
+    echo "© 2026 Lewis. MIT License."
+}
+
+# Check if number is within supported range (0-999)
+validate_number() {
+    local num=$1
+    if ! [[ "$num" =~ ^-?[0-9]+$ ]]; then
+        echo -e "${RED}Error:${NC} '$num' is not a valid number" >&2
+        echo "calcli only supports integers. No decimals, no fractions, no imaginary numbers." >&2
+        exit 1
+    fi
+    
+    local abs_num=${num#-}
+    if [ "$abs_num" -gt 999 ]; then
+        echo -e "${RED}Error:${NC} '$num' exceeds the 3-digit limit" >&2
+        echo "" >&2
+        echo "calcli currently supports:" >&2
+        echo "  • 1-digit numbers (0-9)" >&2
+        echo "  • 2-digit numbers (10-99)" >&2
+        echo "  • 3-digit numbers (100-999)" >&2
+        echo "" >&2
+        echo "For 4-digit+ support, please wait for calcli Pro™ (ETA: 2027)" >&2
+        exit 1
+    fi
+}
+
+calculate() {
+    local a=$1
+    local op=$2
+    local b=$3
+    local json_mode=$4
+    
+    validate_number "$a"
+    validate_number "$b"
+    
+    local result
+    local expression="${a} ${op} ${b}"
+    
+    case "$op" in
+        "+")
+            result=$((a + b))
+            ;;
+        "-")
+            result=$((a - b))
+            ;;
+        "x"|"*"|"×")
+            result=$((a * b))
+            op="x"
+            expression="${a} x ${b}"
+            ;;
+        "/"|"÷")
+            if [ "$b" -eq 0 ]; then
+                if [ "$json_mode" = "true" ]; then
+                    echo "{\"expression\":\"${a} / ${b}\",\"error\":\"Division by zero\",\"result\":null}"
+                else
+                    echo -e "${RED}Error:${NC} Division by zero"
+                    echo ""
+                    echo "Even AI agents know you can't divide by zero."
+                    echo "Well, technically you can, but the result is undefined."
+                    echo "Or infinity. Or negative infinity. It's complicated."
+                    echo ""
+                    echo "Try a different number!"
+                fi
+                exit 1
+            fi
+            result=$((a / b))
+            op="/"
+            expression="${a} / ${b}"
+            ;;
+        *)
+            echo -e "${RED}Error:${NC} Unknown operator '$op'" >&2
+            echo "" >&2
+            echo "Supported operators:" >&2
+            echo "  +  Addition" >&2
+            echo "  -  Subtraction" >&2
+            echo "  x  Multiplication (or *)" >&2
+            echo "  /  Division" >&2
+            exit 1
+            ;;
+    esac
+    
+    if [ "$json_mode" = "true" ]; then
+        echo "{\"expression\":\"${expression}\",\"result\":${result}}"
+    else
+        echo "$result"
+    fi
+}
+
+# Main
+main() {
+    local json_mode="false"
+    local args=()
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -v|--version)
+                show_version
+                exit 0
+                ;;
+            --json)
+                json_mode="true"
+                shift
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    # Check argument count
+    if [ ${#args[@]} -eq 0 ]; then
+        show_help
+        exit 0
+    fi
+    
+    if [ ${#args[@]} -ne 3 ]; then
+        echo -e "${RED}Error:${NC} Expected format: calcli <number> <operator> <number>" >&2
+        echo "" >&2
+        echo "Examples:" >&2
+        echo "  calcli 1 + 1" >&2
+        echo "  calcli 6 x 7" >&2
+        echo "  calcli 100 / 4" >&2
+        echo "" >&2
+        echo "Run 'calcli --help' for more information." >&2
+        exit 1
+    fi
+    
+    calculate "${args[0]}" "${args[1]}" "${args[2]}" "$json_mode"
+}
+
+main "$@"
